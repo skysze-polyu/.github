@@ -1,0 +1,65 @@
+name: 需求请求
+description: 想要新增一个能力、改一套流程、或者调整现有做法
+title: "[需求] "
+labels: ["type/feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这个模板的重点不是「我想要什么」，而是「为什么要、怎么算成了」。写不清验收标准的需求，通常最后做不成。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 现在卡在哪
+      description: 描述问题本身，不要直接跳到解决方案
+      placeholder: 例如：每个仓库都要单独开关 Actions，8 个仓库要手动点 8 次，而且新仓库总会漏
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 打算怎么做
+      description: 有想法就写，没有就写「待定」
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      description: 这次改动会波及哪些仓库
+      multiple: true
+      options:
+        - 全账号（所有仓库）
+        - 单个仓库
+        - muse-system-files
+        - snowmy-kubernetes
+        - NATURE-MAGIC 系列
+        - company
+        - Foundry-Github-Copilot-SDK
+        - 仅文档 / 模板
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 什么算做成了（验收标准）
+      description: 必须是能观察到的结果，不要写「体验更好」这种
+      placeholder: |
+        - 新建仓库后自动带上 Issue 模板
+        - 不需要手动去 Settings 里点任何开关
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: risk
+    attributes:
+      label: 风险自查
+      options:
+        - label: 这个改动会关闭某个现有的自动化
+        - label: 这个改动会影响公开仓库的对外可见性
+        - label: 这个改动涉及密钥或凭据
+        - label: 以上都不涉及

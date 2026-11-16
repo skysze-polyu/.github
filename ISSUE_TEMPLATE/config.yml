@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub 设置相关问题
+    url: https://github.com/skysze-polyu
+    about: 账号级设置（Actions 策略、模板继承）走这里

@@ -1,0 +1,62 @@
+name: 缺陷报告
+description: 某个东西坏了、行为不对、或者结果和预期不符
+title: "[Bug] "
+labels: ["type/bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先确认这不是「还没做」，而是「做了但不对」。如果是想要新功能，请用「需求请求」模板。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及范围
+      description: 问题出在哪一块
+      options:
+        - 仓库 / 代码
+        - Actions / CI 流水线
+        - 权限 / 设置
+        - 文档
+        - 数据 / 同步
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 现在发生了什么
+      description: 具体现象，有报错就贴报错原文
+      placeholder: 例如：push 到 main 后 Actions 没有触发，页面显示 No workflow runs
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 应该是怎样
+      placeholder: 例如：push 后 30 秒内应该出现一条新的 workflow run
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 按顺序写，让别人能照着重演
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 看到 ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 什么算修好了（验收标准）
+      description: 一句话，能判断真假就行
+      placeholder: 例如：push 到 main 后能稳定触发，连续 3 次都成功
+    validations:
+      required: true

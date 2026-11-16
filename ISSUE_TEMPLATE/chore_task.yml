@@ -1,0 +1,42 @@
+name: 杂务 / 维护
+description: 整理、归档、改设置、补文档这类不需要新功能的事
+title: "[杂务] "
+labels: ["type/chore"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型
+      options:
+        - 仓库归档 / 冻结
+        - Actions 开关调整
+        - 分支保护 / 权限
+        - 文档补充
+        - 命名 / 描述整理
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 要做什么
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: reversible
+    attributes:
+      label: 可逆性
+      options:
+        - label: 这个操作可以撤销（例如改设置、开 PR）
+        - label: 这个操作不可撤销（例如归档仓库、删除分支、改权限）
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 完成标志
+    validations:
+      required: true
