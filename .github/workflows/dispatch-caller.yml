@@ -1,0 +1,36 @@
+name: Dispatch (caller)
+
+# ===== 這份放進任何 repo 的 .github/workflows/ 就能用 =====
+# 觸發方式二選一：
+#   1. Actions 頁面手動 Run workflow，填 task
+#   2. 在任意 issue 留言 /dispatch <任務描述>
+# 真正的邏輯在 dispatch-template.yml（reusable），卡住看那條 run 的 job 狀態。
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "任務描述"
+        required: true
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  call:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       startsWith(github.event.comment.body, '/dispatch'))
+    uses: skysze-polyu/.github/.github/workflows/dispatch-template.yml@main
+    with:
+      task: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && inputs.task
+            || substring(github.event.comment.body, 10) }}
+    secrets: inherit
