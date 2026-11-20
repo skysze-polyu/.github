@@ -1,0 +1,138 @@
+name: Dispatch Chain (reusable)
+
+# 可重複使用的調度模板：放進任何 repo 的 .github/workflows/，
+# 其他 workflow 用 workflow_call 呼叫，或直接 workflow_dispatch 手動跑。
+# 五棒用 needs 串接 —— 卡在哪一棒，workflow run 直接看得到，不用猜 @ 有沒有觸發。
+
+on:
+  workflow_call:
+    inputs:
+      task:
+        description: "任務描述（會變成 issue 標題）"
+        required: true
+        type: string
+      branch_prefix:
+        description: "branch 前綴"
+        required: false
+        type: string
+        default: dispatch
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "任務描述"
+        required: true
+        type: string
+      branch_prefix:
+        description: "branch 前綴"
+        required: false
+        type: string
+        default: dispatch
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # 第1棒 action：建立 task issue
+  action:
+    runs-on: ubuntu-latest
+    outputs:
+      issue: ${{ steps.create.outputs.issue }}
+    steps:
+      - name: 建立 issue
+        id: create
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TASK: ${{ inputs.task }}
+        run: |
+          URL=$(gh issue create --repo "$REPO" \
+            --title "Dispatch: $TASK" \
+            --body "任務：$TASK\n\n由 dispatch-template 自動建立。")
+          NUM=$(echo "$URL" | grep -oE '[0-9]+$')
+          echo "issue=$NUM" >> "$GITHUB_OUTPUT"
+          echo "建立 issue #$NUM"
+
+  # 第2棒 issue：開 branch / commit / PR
+  issue:
+    needs: action
+    runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.pr.outputs.pr }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: commit + 開 PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ needs.action.outputs.issue }}
+          PREFIX: ${{ inputs.branch_prefix }}
+        run: |
+          git config user.name "dispatch-bot"
+          git config user.email "dispatch-bot@users.noreply.github.com"
+          BRANCH="$PREFIX/$(date -u +%H%M%S)"
+          git checkout -b "$BRANCH"
+          echo "dispatch artifact $(date -u)" > dispatch-artifact.txt
+          git add dispatch-artifact.txt
+          git commit -m "dispatch: 由 issue #$ISSUE 產生"
+          git push -u origin "$BRANCH"
+          URL=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
+            --title "Dispatch PR for #$ISSUE" --body "Ref #$ISSUE")
+          NUM=$(echo "$URL" | grep -oE '[0-9]+$')
+          echo "pr=$NUM" >> "$GITHUB_OUTPUT"
+          echo "建立 PR #$NUM"
+
+  # 第3棒 pr：加 label
+  pr:
+    needs: [action, issue]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 加 label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.issue.outputs.pr }}
+        run: |
+          gh label create "dispatch:review" --repo "$REPO" --color fbca04 \
+            --description "dispatch 待審查" 2>/dev/null || true
+          gh pr edit "$PR" --repo "$REPO" --add-label "dispatch:review"
+          echo "PR #$PR 已加 dispatch:review"
+
+  # 第4棒 label：更新 PR
+  label:
+    needs: [action, issue, pr]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 更新 PR body + comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.issue.outputs.pr }}
+          ISSUE: ${{ needs.action.outputs.issue }}
+        run: |
+          gh pr comment "$PR" --repo "$REPO" \
+            --body "dispatch 審查：內容符合，允許更新。"
+          gh pr edit "$PR" --repo "$REPO" \
+            --body "由 dispatch-template 更新。Ref #$ISSUE"
+          echo "PR #$PR 已更新"
+
+  # 第5棒 update：標記完成並關閉 issue
+  update:
+    needs: [action, issue, pr, label]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 收尾
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ needs.action.outputs.issue }}
+        run: |
+          gh label create "dispatch:done" --repo "$REPO" --color 0e8a16 \
+            --description "dispatch 完成" 2>/dev/null || true
+          gh issue edit "$ISSUE" --repo "$REPO" --add-label "dispatch:done"
+          gh issue comment "$ISSUE" --repo "$REPO" \
+            --body "✅ Dispatch chain 完成：action → issue → pr → label → update。"
+          gh issue close "$ISSUE" --repo "$REPO"
+          echo "issue #$ISSUE 已關閉"
